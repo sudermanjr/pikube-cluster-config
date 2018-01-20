@@ -10,6 +10,8 @@ This is a set of python functions and some other stuff to allow you to generate 
 * Now run the flash utility to flash these cloud configs to your SD cards (requires hypriot flash, see references)
 * Cluster should come up several minutes after booting the Pis.  This can take a while.
 
+Note: The kubeconfig to access the cluster will be in /etc/kubernetes/admin.conf.  You will need this to use kubectl
+
 ## References
 
 This is all utilizing a ton of work by hypriot.  Thanks!

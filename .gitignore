@@ -1,3 +1,4 @@
+*.swp
 *-master.yaml
 *-node*.yaml
 cluster_config.yaml

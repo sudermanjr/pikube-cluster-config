@@ -1,20 +1,17 @@
-host-prefix: SomethingToIDYourCluster
+host-prefix: pikube
 node_count: 4 # This does not include the master
 users:
-  - name: "joe"
-    admin: false
-  - name: "whosit"
+  - name: "admin"
     admin: true
-    ssh_keys:
-      public_rsa: " Public key string"
+    sshPublicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDiF3CroeLxJY/4KnE5ksMocgUOmaL4HkfXAJcNij543WN8Mzgnd/pFxXSbkvE9GRoXzPYL31t3R0Q7lVebf8v/Qxew0b6bTLpB3BgpacTVybngl1gI1MI+7fS2e2R8ubA58oEvxV6VVn+VvS6V8sgJCYghnzieGM2O7AcJo8ZqsTc7o4/qTqeq2d6J6cw4eEeHTr2PBVZvJ5IbtfdrulodjwdHt2eLfivp8TOsQjrYmvQ2tR9A4e9hxBHdLTACByfdplA72qOZ9fv4ysJ0FmYAYbiaaTmOjUGoy05KBeS58g1/1x1SJzkVX4BAhPsKyAtzlHJ7Ui6coy7Z9hNRLpmuV2+03sj+66fG73aH7fwVYHMI5QrvjNRDAPd6pMaKAGlSvV+ig/ZqDTfEZJw/3QAAIZ7pGe7p8dtwdMZS8TYt5FBbauvxcmqfDw+kSizOPLHtBVruRO1AzWOpSA5eC94Ca391e6dLh4fW2MA390My4C6njW8vwoZyDnjeu6nM0hSKAbuNFTXmKexiOz8fFL/ohvBVomndIP+mKMlMjJ3+d7SMR/5rOplT7k+GobrMRVhUsxPIJtxqQtI9XwHwefDryYIAG7LQXicbaO1Vszq9hC57SUrWeJOCt/YYJEMv9SKkGXJwkew6XGxFKY22VxZxN62aW5pFCGLiaeiZXRpd1w=="
 network:
   wlan:
     enabled: true
-    ssid: "YourWirelessNetwork"
-    psk: "YourWirelessPassword"
+    ssid: "pikube"
+    psk: "A password should be defined here."
   lan:
     enabled: true
-    cidr: '10.90.32.0/24' # Must be an empty cidr.  We will use common addresses
+    cidr: '10.3.14.0/24' # Must be an empty cidr.  We will use common addresses
 kubeadm:
   discoveryURL: 
   network: weavenet

@@ -1,0 +1,21 @@
+host-prefix: SomethingToIDYourCluster
+node_count: 4 # This does not include the master
+users:
+  - name: "joe"
+    admin: false
+  - name: "whosit"
+    admin: true
+    ssh_keys:
+      public_rsa: " Public key string"
+network:
+  wlan:
+    enabled: true
+    ssid: "YourWirelessNetwork"
+    psk: "YourWirelessPassword"
+  lan:
+    enabled: true
+    cidr: '10.90.32.0/24' # Must be an empty cidr.  We will use common addresses
+kubeadm:
+  discoveryURL: 
+  network: weavenet
+

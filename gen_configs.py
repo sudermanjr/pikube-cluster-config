@@ -216,6 +216,22 @@ def build_all_nodes(config, token):
         count += 1
     return None
 
+def build_configs():
+    """ Build all the configs using the user cluster_config.yaml """
+    # Pull in the master config as dict
+    user_config = yaml.load(open("cluster_config.yaml", "r" ))
+    my_token = ""
+    if 'token' in user_config['kubeadm']:
+        my_token = user_config['kubeadm']['token']
+    else:
+        my_token = gen_token()
+    
+    LOG.info('Using Token: {0}'.format(my_token))
+    build_master(user_config, my_token)
+    build_all_nodes(user_config, my_token)
+    LOG.info('Configs are generated')
+
+
 if __name__ == "__main__":
     # setup loggig
     logging.basicConfig( format="%(asctime)s %(levelname)7s  %(funcName)s %(message)s")
@@ -223,11 +239,4 @@ if __name__ == "__main__":
     LOG.setLevel(logging.INFO)
     PP = pprint.PrettyPrinter(depth=6)
 
-    # Pull in the master config as dict
-    user_config = yaml.load(open("cluster_config.yaml", "r" ))
-    if user_config['kubeadm']['token']:
-        my_token = user_config['kubeadm']['token']
-    else:
-        my_token = gen_token()
-    build_master(user_config, my_token)
-    build_all_nodes(user_config, my_token)
+    build_configs()

@@ -29,7 +29,10 @@ def line_prepender(filename, line):
 
 
 def gen_token():
-    """ Builds a toke n from regex [a-z0-9]{6}\.[a-z0-9]{16} """
+    """ 
+	Builds a token from regex [a-z0-9]{6}\.[a-z0-9]{16} 
+	This token can be used for kubeadm init and join
+    """
     token = rstr.xeger(r'[a-z0-9]{6}\.[a-z0-9]{16}')
     return token
 
@@ -56,28 +59,17 @@ def build_network_config(config, node):
     if config['network']['wlan']['enabled']:
         # Create the interfaces file
         wlan0 = {}
-        wlan0['content'] = """allow-hotplug wlan0
-iface wlan0 inet dhcp
-wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
-iface default inet dhcp
-"""
+        wlan0_content = """allow-hotplug wlan0\niface wlan0 inet dhcp\nwpa-conf /etc/wpa_supplicant/wpa_supplicant.conf\niface default inet dhcp\n"""
+        wlan0['content'] = base64.b64encode(bytes(wlan0_content, "utf-8"))
         wlan0['path'] = r'/etc/network/interfaces.d/wlan0'
         writefiles.append(wlan0)
         
         # Create the wpa supplicant
         supplicant = {}
         supplicant['path'] = "/etc/wpa_supplicant/wpa_supplicant.conf"
-        supplicant['content'] = """ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
-update_config=1
-network={{
-ssid="{0}"
-psk="{1}"
-proto=RSN
-key_mgmt=WPA-PSK
-pairwise=CCMP
-auth_alg=OPEN
-}}
-""".format(config['network']['wlan']['ssid'], config['network']['wlan']['psk'])
+        supplicant['encoding'] = "b64"
+        supplicant_content = """ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev\nupdate_config=1\nnetwork={{\n  ssid="{0}"\n  psk="{1}"\n  proto=RSN\n  key_mgmt=WPA-PSK\n  pairwise=CCMP\n  auth_alg=OPEN\n  }}\n""".format(config['network']['wlan']['ssid'], config['network']['wlan']['psk'])
+        supplicant['content'] = base64.b64encode(bytes(supplicant_content, "utf-8"))
 
         writefiles.append(supplicant)
 
@@ -92,7 +84,7 @@ auth_alg=OPEN
         eth0 = {}
         eth0['path'] = "/etc/network/interfaces.d/eth0"
         eth0['encoding'] = "b64"
-        content = """auto eth0\niface eth0 inet static\n  address {0}\n  netmask {1}\n  gateway {2}""".format(ip,netmask,gateway)
+        content = """auto eth0\niface eth0 inet static\n  address {0}\n  netmask {1}\n  gateway {2}\n""".format(ip,netmask,gateway)
         eth0['content'] = base64.b64encode(bytes(content,"utf-8"))
         writefiles.append(eth0)
     return writefiles
@@ -116,20 +108,21 @@ def build_base_commands():
     return cmds
 
 
-def build_master(config):
+def build_master(config, token):
     """ Bulds the master config"""
     master_config = {}
 
     # Fix the hostname
     master_config['hostname'] = "{0}-master".format(config['host-prefix'])
 
+    # Add users
     master_config['users'] = build_users(config)
 
-    # Add basr run comands
+    # Add base run comands
     master_config['runcmd'] = build_base_commands()
 
     # Add the commands to init the master
-    master_config['runcmd'].append(r'kubeadm init --token {0}'.format(gen_token()))
+    master_config['runcmd'].append(r'kubeadm init --token {0}'.format(token))
     master_config['runcmd'].append(r'mkdir /home/asuderma/.kube')
     master_config['runcmd'].append(r'cp /etc/kubernetes/admin.conf /home/asuderma/.kube/config')
     master_config['runcmd'].append(r'chown -R asuderma /home/asuderma/.kube')
@@ -145,18 +138,44 @@ def build_master(config):
     # Add the network config
     master_config['write_files'] = build_network_config(config, 200)
 
-    return master_config
+    # Write the file
+    filename = "{0}-master.yaml".format(config['host-prefix'])
+    with open(filename, "w") as file:
+        yaml.dump(master_config, file, default_flow_style=False)
+    line_prepender(filename, "#cloud-config")
+    return None
 
+
+def build_node( config, token, node):
+    """ Builds a node config """
+    node_config = []
+
+    #Set hostname
+    node_config['hostname'] = "{0}-node{1}".format(config['host-prefix'], node)
+
+    # Add users
+    node_config['users'] = build_users(config)
+
+    # Add base run commands
+    node_config['runcmd'] = build_base_commands()
+
+    # Join the cluster
+    master_config['runcmd'].append(r'kubeadm join --token {0} --discovery-token-unsafe-skip-ca-verification'.format(token))
+
+    # Add network config
+    network_config['write_files'] = build_network_config(config, node)
+    
+    #Write the file
+    filename = "{0}-node{1}.yaml".format(config['host-prefix'], node)
+    with open(filename, "w") as file:
+        yaml.dump(node_config, file, default_flow_style=False)
+    line_prepender(filename, "#cloud-config")
+    return None
 
 if __name__ == "__main__":
     # Pull in the master config as dict
     user_config = yaml.load(open("cluster_config.yaml", "r" ))
     PP = pprint.PrettyPrinter(depth=6)
-    example_config = yaml.load(open("pi-master.yaml", "r" ))
-    masterConfig = build_master(user_config)
-    with open("parsed_master_config.yaml", "w") as file:
-        yaml.dump(example_config, file, default_flow_style=False)
-    with open("generated_master_config.yaml", "w") as file:
-        yaml.dump(masterConfig, file, default_flow_style=False)
-    
-    line_prepender("generated_master_config.yaml", "#cloud-config")
+    my_token = gen_token()
+    build_master(user_config, my_token)
+

@@ -5,6 +5,7 @@ This is a set of python functions and some other stuff to allow you to generate 
 ## Usage
 
 * Create a cluster_config.yaml based on the example in the file.  You can create multiple users and set wifi/lan info here
+* If you leave the token field blank, one will be randomly generated
 * Make sure you have all the packages installed in requirements.txt
 * Run `./gen_configs.py`
 * Now run the flash utility to flash these cloud configs to your SD cards (requires hypriot flash, see references)

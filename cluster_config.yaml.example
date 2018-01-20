@@ -15,4 +15,4 @@ network:
 kubeadm:
   discoveryURL: 
   network: weavenet
-
+  token: KUBEADME_TOKEN # only if you want.  Otherwise one will be generated

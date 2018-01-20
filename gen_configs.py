@@ -225,6 +225,9 @@ if __name__ == "__main__":
 
     # Pull in the master config as dict
     user_config = yaml.load(open("cluster_config.yaml", "r" ))
-    my_token = gen_token()
+    if user_config['kubeadm']['token']:
+        my_token = user_config['kubeadm']['token']
+    else:
+        my_token = gen_token()
     build_master(user_config, my_token)
     build_all_nodes(user_config, my_token)

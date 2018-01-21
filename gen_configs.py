@@ -65,19 +65,18 @@ def build_users(config):
         newuser['name'] = user['name']
         newuser['shell'] = '/bin/bash'
         passwd = gen_pass()
-        newuser['passwd'] = sha512 = sha512_crypt(passwd, None, 4096)
+        newuser['passwd'] =  sha512_crypt(passwd, None, 4096)
         newuser['lock_passd'] = False
         newuser['chpasswd'] = {'expire': False}
 
         if 'sshPublicKey' in user:
             # Set their key and disable pw auth
-            newuser['ssh-authorized-keys:'] = user['sshPublicKey']
-            newuser['ssh_pwauth'] = False
+            newuser['ssh_authorized_keys'] = user['sshPublicKey']
+            newuser['ssh_pwauth'] = True
         else:
             # Log the password so that we can find it later, and enable pwauth
-            LOG.info('The password for {0} will be {1}'.format(user['name'], passwd))
             newuser['ssh_pwauth'] = True
-
+        LOG.info('The password for {0} will be {1}'.format(user['name'], passwd))
         # Give admins some stuff
         if user['admin']:
             newuser['sudo'] = 'ALL=(ALL) NOPASSWD:ALL'

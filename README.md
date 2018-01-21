@@ -39,6 +39,14 @@ Also, I am using some specific address ranges inside the cidr that you specify. 
 
 I really like the self hosted kubernetes model.  Enable that in the kubeadm section of cluster_config.yaml
 
+### Helm
+
+If you want to install a tiller for helm, use this
+
+```
+helm init --tiller-image timotto/rpi-tiller:latest --service-account tiller
+```
+
 ### flash.sh
 
 You can use the flash.sh to flash a single node's card.  Just use `./flash.sh <prefix>-nodeX.yaml`

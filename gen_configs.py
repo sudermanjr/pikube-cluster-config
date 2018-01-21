@@ -73,7 +73,7 @@ def build_users(config):
         if 'sshPublicKey' in user:
             # Set their key and disable pw auth
             newuser['ssh_authorized_keys'] = [user['sshPublicKey']]
-            newuser['ssh_pwauth'] = True
+            newuser['ssh_pwauth'] = False
         else:
             # Log the password so that we can find it later, and enable pwauth
             newuser['ssh_pwauth'] = True

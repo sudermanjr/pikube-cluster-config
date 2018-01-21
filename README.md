@@ -59,4 +59,3 @@ This is all utilizing a ton of work by hypriot.  Thanks!
 
 https://blog.hypriot.com/post/cloud-init-cloud-on-hypriot-x64/
 https://github.com/hypriot/flash
-

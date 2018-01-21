@@ -167,6 +167,7 @@ def build_master(config, token):
     if config['kubeadm']['network'] == 'weavenet':
         master_config['runcmd'].append(r'export kubever=$(kubectl version | base64 | tr -d "\n")')
         master_config['runcmd'].append(r'kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$kubever"')
+        master_config['runcmd'].append(r'kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/master/src/deploy/alternative/kubernetes-dashboard-arm.yaml')
 
     # Add the other config options
     master_config['locale'] = "en_US.UTF-8"

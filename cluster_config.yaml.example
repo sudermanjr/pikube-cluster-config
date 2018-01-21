@@ -11,8 +11,9 @@ network:
     psk: "A password should be defined here."
   lan:
     enabled: true
-    cidr: '10.3.14.0/24' # Must be an empty cidr.  We will use common addresses
+    cidr: '10.3.14.0/24' # Must be an empty cidr.  We will use common addresses like 1-5 and 200
 kubeadm:
   discoveryURL: 
   network: weavenet
-  token: KUBEADME_TOKEN # only if you want.  Otherwise one will be generated
+  token: KUBEADME_TOKEN # only if you want.  Delete this to generate one on the fly
+  selfHosted: true

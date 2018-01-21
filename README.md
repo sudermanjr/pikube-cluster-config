@@ -2,6 +2,15 @@
 
 This is a set of python functions and some other stuff to allow you to generate cloud init files for a pi kube cluster.  These can then be flashed using the hypriot flash utility to build a pi cluster
 
+## Requirements
+
+There's a few things that require this to work out of the box:
+
+* The hypriot flash utility (see references)
+* A router that will allow you to discover the other Pi nodes via DNS.  I use a travel router with openwrt.  This enables the pis to look each other up by name.  You could also do this with static entries.
+* Some SD cards.  Preferably class 10 or better
+* Some Pis.  I use 5.  It's up to you
+
 ## Usage
 
 * Create a cluster_config.yaml based on the example in the file.  You can create multiple users and set wifi/lan info here
@@ -9,11 +18,28 @@ This is a set of python functions and some other stuff to allow you to generate 
 * Make sure you have all the packages installed in requirements.txt
 * Run `./gen_configs.py`
 * Run `./flash.sh <cluster prefix>`, this will start a flash of the SD Cards (requires hypriot flash utility from references)
-* Cluster should come up several minutes after booting the Pis.  This can take a while.
+* Start up the first node right away.  This one takes the longest.
+* Then start the other nodes and they will join the cluster.  This can take a while.
 
 Note: The kubeconfig to access the cluster will be in /etc/kubernetes/admin.conf.  You will need this to use kubectl
 
-## Other
+## Other Notes
+
+### Networking
+
+I use weavenet because it's the easiest to get working with kubeadm.  Right now this tool doesn't support anything else.
+
+Also, I am using some specific address ranges inside the cidr that you specify.  I may add a way to change these, but until then deal with these:
+
+* 1-x For the nodes
+* 254 - gateway
+* 200 - The master.  I figured you wouldn't have more than 199 nodes using this
+
+### Self-Hosted
+
+I really like the self hosted kubernetes model.  Enable that in the kubeadm section of cluster_config.yaml
+
+### flash.sh
 
 You can use the flash.sh to flash a single node's card.  Just use `./flash.sh <prefix>-nodeX.yaml`
 

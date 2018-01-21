@@ -44,8 +44,8 @@ def line_prepender(filename, line):
 
 
 def gen_token():
-    """ 
-	Builds a token from regex [a-z0-9]{6}\.[a-z0-9]{16} 
+    """
+	Builds a token from regex [a-z0-9]{6}\.[a-z0-9]{16}
 	This token can be used for kubeadm init and join
     """
     LOG.debug('Generating Token')
@@ -66,12 +66,13 @@ def build_users(config):
         newuser['shell'] = '/bin/bash'
         passwd = gen_pass()
         newuser['passwd'] =  sha512_crypt(passwd, None, 4096)
-        newuser['lock_passd'] = False
+
+        newuser['lock_passwd'] = False
         newuser['chpasswd'] = {'expire': False}
 
         if 'sshPublicKey' in user:
             # Set their key and disable pw auth
-            newuser['ssh_authorized_keys'] = user['sshPublicKey']
+            newuser['ssh_authorized_keys'] = [user['sshPublicKey']]
             newuser['ssh_pwauth'] = True
         else:
             # Log the password so that we can find it later, and enable pwauth
@@ -95,9 +96,10 @@ def build_network_config(config, node):
         wlan0 = {}
         wlan0_content = """allow-hotplug wlan0\niface wlan0 inet dhcp\nwpa-conf /etc/wpa_supplicant/wpa_supplicant.conf\niface default inet dhcp\n"""
         wlan0['content'] = base64.b64encode(bytes(wlan0_content, "utf-8"))
+        wlan0['encoding'] = "b64"
         wlan0['path'] = r'/etc/network/interfaces.d/wlan0'
         writefiles.append(wlan0)
-        
+
         # Create the wpa supplicant
         supplicant = {}
         supplicant['path'] = "/etc/wpa_supplicant/wpa_supplicant.conf"
@@ -122,18 +124,21 @@ def build_network_config(config, node):
         eth0['content'] = base64.b64encode(bytes(content,"utf-8"))
         writefiles.append(eth0)
     return writefiles
-        
+
 
 def build_base_commands():
     """ The base list of commands to run """
     cmds = []
     cmds.append(r'systemctl restart avahi-daemon')
     cmds.append(r'systemctl restart avahi-daemon')
+    cmds.append(r'ifdown wlan0')
+    cmds.append(r'ifdown eth0')
+    cmds.append(r'service network restart')
     cmds.append(r'ifup wlan0')
     cmds.append(r'ifup eth0')
     cmds.append(r'apt-get update')
     cmds.append(r'apt-get upgrade')
-    cmds.append(r'apt-get install -y curl jq git vim')
+    cmds.append(r'apt-get install -y curl jq git vim dnsutils')
     cmds.append(r'curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg')
     cmds.append(r'curl -ks  https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -')
     cmds.append(r'echo "deb http://apt.kubernetes.io/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list')
@@ -157,19 +162,19 @@ def build_master(config, token):
     master_config['runcmd'] = build_base_commands()
 
     # Add the commands to init the master
-    master_config['runcmd'].append(r'kubeadm init --token {0}'.format(token))
-    master_config['runcmd'].append(r'export KUBECONFIG=/etc/kubernetes/admin.conf') 
+    master_config['runcmd'].append(r'kubeadm init --token {0} --feature-gates=SelfHosting={1}'.format(token, config['kubeadm']['selfHosted']))
+    master_config['runcmd'].append(r'export KUBECONFIG=/etc/kubernetes/admin.conf')
     if config['kubeadm']['network'] == 'weavenet':
         master_config['runcmd'].append(r'export kubever=$(kubectl version | base64 | tr -d "\n")')
         master_config['runcmd'].append(r'kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$kubever"')
-    
+
     # Add the other config options
     master_config['locale'] = "en_US.UTF-8"
     master_config['manage_etc_hosts'] = True
-    
+
     # Add the network config
     master_config['write_files'] = build_network_config(config, 200)
-
+    
     # Write the file
     filename = "{0}-master.yaml".format(config['host-prefix'])
     with open(filename, "w") as file:
@@ -193,11 +198,11 @@ def build_node( config, token, node):
     node_config['runcmd'] = build_base_commands()
 
     # Join the cluster
-    node_config['runcmd'].append(r'kubeadm join --token {0} --discovery-token-unsafe-skip-ca-verification'.format(token))
-    
+    node_config['runcmd'].append(r'kubeadm join --token {0} {1}-master:6443 --discovery-token-unsafe-skip-ca-verification'.format(token, config['host-prefix']))
+
     # Add network config
     node_config['write_files'] = build_network_config(config, node)
-    
+
     #Write the file
     filename = "{0}-node{1}.yaml".format(config['host-prefix'], node)
     with open(filename, "w") as file:
@@ -224,7 +229,7 @@ def build_configs():
         my_token = user_config['kubeadm']['token']
     else:
         my_token = gen_token()
-    
+
     LOG.info('Using Token: {0}'.format(my_token))
     build_master(user_config, my_token)
     build_all_nodes(user_config, my_token)
@@ -235,7 +240,7 @@ if __name__ == "__main__":
     # setup loggig
     logging.basicConfig( format="%(asctime)s %(levelname)7s  %(funcName)s %(message)s")
     LOG = logging.getLogger("pikube")
-    LOG.setLevel(logging.INFO)
+    LOG.setLevel(logging.DEBUG)
     PP = pprint.PrettyPrinter(depth=6)
 
     build_configs()

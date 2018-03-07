@@ -103,24 +103,39 @@ def configure_alfred(node):
 
 def build_network_config(config, node):
     writefiles = []
-    # wlan
+
+    # wlan - if mesh is not active
     if config['network']['wlan']['enabled']:
-        # Create the interfaces file
         wlan0 = {}
-        wlan0_content = """allow-hotplug wlan0\niface wlan0 inet dhcp\nwpa-conf /etc/wpa_supplicant/wpa_supplicant.conf\niface default inet dhcp\n"""
+        if not config['network']['wlan']['mesh']:
+            LOG.debug("Configuring regular wireless connection")
+    
+            # Create the interfaces file
+            wlan0_content = """allow-hotplug wlan0\niface wlan0 inet dhcp\nwpa-conf /etc/wpa_supplicant/wpa_supplicant.conf\niface default inet dhcp\n"""
+    
+            # Create the wpa supplicant
+            supplicant = {}
+            supplicant['path'] = "/etc/wpa_supplicant/wpa_supplicant.conf"
+            supplicant['encoding'] = "b64"
+            supplicant_content = """ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev\nupdate_config=1\nnetwork={{\n  ssid="{0}"\n  psk="{1}"\n  proto=RSN\n  key_mgmt=WPA-PSK\n  pairwise=CCMP\n  auth_alg=OPEN\n  }}\n""".format(config['network']['wlan']['ssid'], config['network']['wlan']['psk'])
+            supplicant['content'] = base64.b64encode(bytes(supplicant_content, "utf-8"))
+            writefiles.append(supplicant)
+        else:
+            LOG.debug("Configuring wifi for mesh networking")
+            wlan0_content = """auto wlan0\niface wlan0 inet6 manual\n  wireless-channel 1\n  wireless-essid killer-mesh\n  wireless-mode ad-hoc\n  wireless-ap 02:12:34:56:78:9A\n  pre-up /sbin/ifconfig wlan0 mtu 1532\n"""
+
+            bat0 = {}
+            bat0_content = """auto bat0\niface bat0 inet6 auto\n  pre-up /usr/local/sbin/batctl if add wlan0"""
+            bat0['content'] = base64.b64encode(bytes(bat0_content, "utf-8"))
+            bat0['path'] = r'/etc/network/interfaces.d/bat0'
+            bat0['encoding'] = "b64"
+            writefiles.append(bat0)
+  
+
         wlan0['content'] = base64.b64encode(bytes(wlan0_content, "utf-8"))
         wlan0['encoding'] = "b64"
         wlan0['path'] = r'/etc/network/interfaces.d/wlan0'
         writefiles.append(wlan0)
-
-        # Create the wpa supplicant
-        supplicant = {}
-        supplicant['path'] = "/etc/wpa_supplicant/wpa_supplicant.conf"
-        supplicant['encoding'] = "b64"
-        supplicant_content = """ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev\nupdate_config=1\nnetwork={{\n  ssid="{0}"\n  psk="{1}"\n  proto=RSN\n  key_mgmt=WPA-PSK\n  pairwise=CCMP\n  auth_alg=OPEN\n  }}\n""".format(config['network']['wlan']['ssid'], config['network']['wlan']['psk'])
-        supplicant['content'] = base64.b64encode(bytes(supplicant_content, "utf-8"))
-
-        writefiles.append(supplicant)
 
     # lan
     if config['network']['lan']['enabled']:
@@ -164,7 +179,7 @@ def build_base_commands(config):
     cmds.append(r'apt-get install -y kubelet kubeadm kubectl')
 
     # Add batman specific commands if it is enabled
-    if config['network']['batman']['enabled']:
+    if config['network']['wlan']['mesh']:
         # Install batman adv deps
         cmds.append(r'apt-get install -y libnl-3-dev libnl-genl-3-dev libcap-dev libgps-dev')
 
@@ -214,7 +229,8 @@ def build_master(config, token):
     master_config['write_files'] = build_network_config(config, 200)
 
     # If batman is selected, then add it to the writefiles
-    master_config['write_files'].append(configure_alfred(200))
+    if config['network']['wlan']['mesh']:
+        master_config['write_files'].append(configure_alfred(200))
 
     # Write the file
     filename = "{0}-master.yaml".format(config['host-prefix'])
@@ -245,7 +261,8 @@ def build_node( config, token, node):
     node_config['write_files'] = build_network_config(config, node)
 
     # If batman is selected, then add it to the writefiles
-    node_config['write_files'].append(configure_alfred(node))
+    if config['network']['wlan']['mesh']:
+        node_config['write_files'].append(configure_alfred(node))
 
     #Write the file
     filename = "{0}-node{1}.yaml".format(config['host-prefix'], node)

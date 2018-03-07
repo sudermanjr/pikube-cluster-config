@@ -308,7 +308,7 @@ def build_configs():
 
 if __name__ == "__main__":
     # setup loggig
-    logging.basicConfig( format="%(asctime)s %(levelname)7s  %(funcName)s %(message)s")
+    logging.basicConfig( format="%(asctime)s %(levelname)7s  %(funcName)20s %(message)s")
     LOG = logging.getLogger("pikube")
     LOG.setLevel(logging.DEBUG)
     PP = pprint.PrettyPrinter(depth=6)

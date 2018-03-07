@@ -171,7 +171,7 @@ def build_base_commands(config):
     cmds.append(r'ifup eth0')
     cmds.append(r'apt-get update')
     cmds.append(r'apt-get upgrade')
-    cmds.append(r'apt-get install -y curl jq git vim dnsutils make gcc')
+    cmds.append(r'apt-get install -y curl jq git vim dnsutils')
     cmds.append(r'curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg')
     cmds.append(r'curl -ks  https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -')
     cmds.append(r'echo "deb http://apt.kubernetes.io/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list')
@@ -181,7 +181,7 @@ def build_base_commands(config):
     # Add batman specific commands if it is enabled
     if config['network']['wlan']['mesh']:
         # Install batman adv deps
-        cmds.append(r'apt-get install -y libnl-3-dev libnl-genl-3-dev libcap-dev libgps-dev')
+        cmds.append(r'apt-get install -y libnl-3-dev libnl-genl-3-dev libcap-dev libgps-dev make gcc avahi-autoipd')
 
         # Get batctl and build it
         cmds.append(r'git clone https://git.open-mesh.org/batctl.git')
@@ -198,8 +198,12 @@ def build_base_commands(config):
 
         # Start the interfaces for the mesh
         cmds.append(r'ip link set up dev wlan0')
+        cmds.append(r'ifup bat0')
         cmds.append(r'ip link set up dev bat0')
-        cmds.append(r'avahi-autoipd bat0')
+        cmds.append(r'avahi-autoipd bat0 -D --start 169.254.42.0')
+
+        # Start up avahi-autoipd to get an address
+        cmds.append(r'avahi-autoipd dev bat0')
 
     return cmds
 

@@ -45,8 +45,8 @@ def line_prepender(filename, line):
 
 def gen_token():
     """
-	Builds a token from regex [a-z0-9]{6}\.[a-z0-9]{16}
-	This token can be used for kubeadm init and join
+        Builds a token from regex [a-z0-9]{6}\.[a-z0-9]{16}
+        This token can be used for kubeadm init and join
     """
     LOG.debug('Generating Token')
     token = rstr.xeger(r'[a-z0-9]{6}\.[a-z0-9]{16}')
@@ -109,18 +109,24 @@ def build_network_config(config, node):
 
         writefiles.append(supplicant)
 
-    # Lan
+    # lan
     if config['network']['lan']['enabled']:
-        network = netaddr.IPNetwork(config['network']['lan']['cidr'])
-        netmask = network.netmask
-        iplist = list(network)
-        ip = iplist[node]
-        gateway = iplist[254]
-
         eth0 = {}
         eth0['path'] = "/etc/network/interfaces.d/eth0"
         eth0['encoding'] = "b64"
-        content = """auto eth0\niface eth0 inet static\n  address {0}\n  netmask {1}\n  gateway {2}\n""".format(ip,netmask,gateway)
+
+        if config['network']['lan']['dhcp']:
+            LOG.debug('Lan DHCP Selected')
+            content = """auto eth0\nallow-hotplug eth0\niface eth0 inet dhcp\n"""
+        else:
+            LOG.debug('Lan Manual Configuration')
+            network = netaddr.IPNetwork(config['network']['lan']['cidr'])
+            netmask = network.netmask
+            iplist = list(network)
+            ip = iplist[node]
+            gateway = iplist[254]
+            content = """auto eth0\niface eth0 inet static\n  address {0}\n  netmask {1}\n  gateway {2}\n""".format(ip,netmask,gateway)
+
         eth0['content'] = base64.b64encode(bytes(content,"utf-8"))
         writefiles.append(eth0)
     return writefiles
@@ -129,7 +135,6 @@ def build_network_config(config, node):
 def build_base_commands():
     """ The base list of commands to run """
     cmds = []
-    cmds.append(r'systemctl restart avahi-daemon')
     cmds.append(r'systemctl restart avahi-daemon')
     cmds.append(r'ifdown wlan0')
     cmds.append(r'ifdown eth0')
@@ -143,7 +148,7 @@ def build_base_commands():
     cmds.append(r'curl -ks  https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -')
     cmds.append(r'echo "deb http://apt.kubernetes.io/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list')
     cmds.append(r'apt-get update')
-    cmds.append(r'apt-get install -y kubelet kubeadm kubectl')
+    cmds.append(r'apt-get install -y kubelet kubeadm kubectl batmand batctl')
     return cmds
 
 
@@ -175,7 +180,7 @@ def build_master(config, token):
 
     # Add the network config
     master_config['write_files'] = build_network_config(config, 200)
-    
+
     # Write the file
     filename = "{0}-master.yaml".format(config['host-prefix'])
     with open(filename, "w") as file:

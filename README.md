@@ -61,6 +61,11 @@ Find the bat0 link-local address:
 ip addr show bat0 | grep -Po 'inet \K[\d.]+'
 ```
 
+Find the mesh IPs
+```
+avahi-browse --terminate --ignore-local --verbose -p  -a | grep bat | grep IPv4
+```
+
 ## References
 
 This is all utilizing a ton of work by hypriot.  Thanks!

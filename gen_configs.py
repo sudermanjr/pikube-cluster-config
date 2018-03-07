@@ -216,12 +216,6 @@ def build_base_commands(config):
         cmds.append(r'systemctl enable alfred')
         cmds.append(r'systemctl start alfred')
 
-#        # Get and start batman-vis
-#        cmds.append(r'cd && git clone https://git.open-mesh.org/vis.git')
-#        cmds.append(r'cd vis && make install')
-#        cmds.append(r'systemctl enable batadv-vis')
-#        cmds.append(r'systemctl start batadv-vis')
-
     return cmds
 
 
@@ -241,9 +235,11 @@ def build_master(config, token):
 
     # Set the master interface
     master_iface = '0.0.0.0'
+    if config['network']['wlan']['mesh']:
+        master_iface = "$(ip addr show bat0 | grep -Po 'inet \K[\d.]+')"
 
     # Add the commands to init the master
-    master_config['runcmd'].append(r'kubeadm init --token {0} --feature-gates=SelfHosting={1} --apiserver-advertise-address {2}'.format(token, config['kubeadm']['selfHosted'], master_iface))
+    master_config['runcmd'].append(r'kubeadm init --token {0} --feature-gates=SelfHosting={1} --apiserver-advertise-address {2}'.format(token, config['kubeadm']['selfHosted'], master_iface.strip()))
     master_config['runcmd'].append(r'export KUBECONFIG=/etc/kubernetes/admin.conf')
     if config['kubeadm']['network'] == 'weavenet':
         master_config['runcmd'].append(r'export kubever=$(kubectl version | base64 | tr -d "\n")')
@@ -260,7 +256,7 @@ def build_master(config, token):
     # If batman is selected, then add it to the writefiles
     if config['network']['wlan']['mesh']:
         master_config['write_files'].append(configure_alfred())
-#        master_config['write_files'].append(configure_batvis())
+        master_config['write_files'].append(configure_batvis())
 
     # Write the file
     filename = "{0}-master.yaml".format(config['host-prefix'])
@@ -293,7 +289,7 @@ def build_node( config, token, node):
     # If batman is selected, then add it to the writefiles
     if config['network']['wlan']['mesh']:
         node_config['write_files'].append(configure_alfred())
-#        node_config['write_files'].append(configure_batvis())
+        node_config['write_files'].append(configure_batvis())
 
     #Write the file
     filename = "{0}-node{1}.yaml".format(config['host-prefix'], node)

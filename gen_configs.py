@@ -88,9 +88,9 @@ def build_users(config):
     return users
 
 
-def configure_batman(node):
+def configure_alfred(node):
     """
-        Add scripts to install and configure batmanadv mesh
+        Adds the systemd unit file to start
     """
     alfred_unit = {}
     alfred_unit_content = """[Unit]\nDescription=alfred\n\n[Service]\nExecStart=/usr/local/sbin/alfred -i bat0 -m\nRestart=always\nRestartSec=10s\n\n[Install]\nWantedBy=multi-user.target"""
@@ -172,9 +172,11 @@ def build_base_commands(config):
         cmds.append(r'git clone https://git.open-mesh.org/batctl.git')
         cmds.append(r'cd batctl && make install')
 
-        # Get and build alfred
+        # Get and build alfred, then start the service
         cmds.append(r'cd && git clone https://git.open-mesh.org/alfred.git')
         cmds.append(r'cd alfred && make install')
+        cmds.append(r'systemctl enable alfred')
+        cmds.append(r'systemctl start alfred')
 
         # Enable the batman adv kernel module
         cmds.append(r'modprobe batman-adv')
@@ -212,7 +214,7 @@ def build_master(config, token):
     master_config['write_files'] = build_network_config(config, 200)
 
     # If batman is selected, then add it to the writefiles
-    master_config['write_files'].append(configure_batman(200))
+    master_config['write_files'].append(configure_alfred(200))
 
     # Write the file
     filename = "{0}-master.yaml".format(config['host-prefix'])
@@ -243,7 +245,7 @@ def build_node( config, token, node):
     node_config['write_files'] = build_network_config(config, node)
 
     # If batman is selected, then add it to the writefiles
-    node_config['write_files'].append(configure_batman(node))
+    node_config['write_files'].append(configure_alfred(node))
 
     #Write the file
     filename = "{0}-node{1}.yaml".format(config['host-prefix'], node)

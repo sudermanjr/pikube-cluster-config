@@ -53,6 +53,14 @@ You can use the flash.sh to flash a single node's card.  Just use `./flash.sh <p
 
 If you want to no overwrite once you have a token, just put the token in the cluster config.  This will overwrite, but with the same token so your kube cluster will continue to work.
 
+## Useful commands
+
+Find the bat0 link-local address:
+
+```
+ip addr show bat0 | grep -Po 'inet \K[\d.]+'
+```
+
 ## References
 
 This is all utilizing a ton of work by hypriot.  Thanks!

@@ -195,6 +195,7 @@ def build_base_commands(config):
 
         # Enable the batman adv kernel module
         cmds.append(r'modprobe batman-adv')
+        cmds.append(r'echo "batman-adv" >> /etc/modules')
 
         # Start the interfaces for the mesh
         cmds.append(r'ip link set up dev wlan0')
@@ -222,8 +223,11 @@ def build_master(config, token):
     # Add base run comands
     master_config['runcmd'] = build_base_commands(config)
 
+    # Set the master interface
+    master_iface = '0.0.0.0'
+
     # Add the commands to init the master
-    master_config['runcmd'].append(r'kubeadm init --token {0} --feature-gates=SelfHosting={1}'.format(token, config['kubeadm']['selfHosted']))
+    master_config['runcmd'].append(r'kubeadm init --token {0} --feature-gates=SelfHosting={1} --apiserver-advertise-address {2}'.format(token, config['kubeadm']['selfHosted'], master_iface))
     master_config['runcmd'].append(r'export KUBECONFIG=/etc/kubernetes/admin.conf')
     if config['kubeadm']['network'] == 'weavenet':
         master_config['runcmd'].append(r'export kubever=$(kubectl version | base64 | tr -d "\n")')

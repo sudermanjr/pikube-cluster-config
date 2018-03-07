@@ -216,11 +216,11 @@ def build_base_commands(config):
         cmds.append(r'systemctl enable alfred')
         cmds.append(r'systemctl start alfred')
 
-        # Get and start batman-vis
-        cmds.append(r'cd && git clone https://git.open-mesh.org/vis.git')
-        cmds.append(r'cd vis && make install')
-        cmds.append(r'systemctl enable batadv-vis')
-        cmds.append(r'systemctl start batadv-vis')
+#        # Get and start batman-vis
+#        cmds.append(r'cd && git clone https://git.open-mesh.org/vis.git')
+#        cmds.append(r'cd vis && make install')
+#        cmds.append(r'systemctl enable batadv-vis')
+#        cmds.append(r'systemctl start batadv-vis')
 
     return cmds
 
@@ -260,7 +260,7 @@ def build_master(config, token):
     # If batman is selected, then add it to the writefiles
     if config['network']['wlan']['mesh']:
         master_config['write_files'].append(configure_alfred())
-        master_config['write_files'].append(configure_batvis())
+#        master_config['write_files'].append(configure_batvis())
 
     # Write the file
     filename = "{0}-master.yaml".format(config['host-prefix'])
@@ -293,7 +293,7 @@ def build_node( config, token, node):
     # If batman is selected, then add it to the writefiles
     if config['network']['wlan']['mesh']:
         node_config['write_files'].append(configure_alfred())
-        node_config['write_files'].append(configure_batvis())
+#        node_config['write_files'].append(configure_batvis())
 
     #Write the file
     filename = "{0}-node{1}.yaml".format(config['host-prefix'], node)

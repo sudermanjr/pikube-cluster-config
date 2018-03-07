@@ -88,6 +88,19 @@ def build_users(config):
     return users
 
 
+def configure_batman(node):
+    """
+        Add scripts to install and configure batmanadv mesh
+    """
+    alfred_unit = {}
+    alfred_unit_content = """[Unit]\nDescription=alfred\n\n[Service]\nExecStart=/usr/local/sbin/alfred -i bat0 -m\nRestart=always\nRestartSec=10s\n\n[Install]\nWantedBy=multi-user.target"""
+
+    alfred_unit['content'] = base64.b64encode(bytes(alfred_unit_content, "utf-8"))
+    alfred_unit['encoding'] = "b64"
+    alfred_unit['path'] = r'/etc/systemd/system/alfred.service'
+
+    return alfred_unit
+
 def build_network_config(config, node):
     writefiles = []
     # wlan
@@ -132,7 +145,7 @@ def build_network_config(config, node):
     return writefiles
 
 
-def build_base_commands():
+def build_base_commands(config):
     """ The base list of commands to run """
     cmds = []
     cmds.append(r'systemctl restart avahi-daemon')
@@ -143,12 +156,29 @@ def build_base_commands():
     cmds.append(r'ifup eth0')
     cmds.append(r'apt-get update')
     cmds.append(r'apt-get upgrade')
-    cmds.append(r'apt-get install -y curl jq git vim dnsutils')
+    cmds.append(r'apt-get install -y curl jq git vim dnsutils make gcc')
     cmds.append(r'curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg')
     cmds.append(r'curl -ks  https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -')
     cmds.append(r'echo "deb http://apt.kubernetes.io/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list')
     cmds.append(r'apt-get update')
-    cmds.append(r'apt-get install -y kubelet kubeadm kubectl batmand batctl')
+    cmds.append(r'apt-get install -y kubelet kubeadm kubectl')
+
+    # Add batman specific commands if it is enabled
+    if config['network']['batman']['enabled']:
+        # Install batman adv deps
+        cmds.append(r'apt-get install -y libnl-3-dev libnl-genl-3-dev libcap-dev libgps-dev')
+
+        # Get batctl and build it
+        cmds.append(r'git clone https://git.open-mesh.org/batctl.git')
+        cmds.append(r'cd batctl && make install')
+
+        # Get and build alfred
+        cmds.append(r'cd && git clone https://git.open-mesh.org/alfred.git')
+        cmds.append(r'cd alfred && make install')
+
+        # Enable the batman adv kernel module
+        cmds.append(r'modprobe batman-adv')
+
     return cmds
 
 
@@ -164,7 +194,7 @@ def build_master(config, token):
     master_config['users'] = build_users(config)
 
     # Add base run comands
-    master_config['runcmd'] = build_base_commands()
+    master_config['runcmd'] = build_base_commands(config)
 
     # Add the commands to init the master
     master_config['runcmd'].append(r'kubeadm init --token {0} --feature-gates=SelfHosting={1}'.format(token, config['kubeadm']['selfHosted']))
@@ -180,6 +210,9 @@ def build_master(config, token):
 
     # Add the network config
     master_config['write_files'] = build_network_config(config, 200)
+
+    # If batman is selected, then add it to the writefiles
+    master_config['write_files'].append(configure_batman(200))
 
     # Write the file
     filename = "{0}-master.yaml".format(config['host-prefix'])
@@ -201,13 +234,16 @@ def build_node( config, token, node):
     node_config['users'] = build_users(config)
 
     # Add base run commands
-    node_config['runcmd'] = build_base_commands()
+    node_config['runcmd'] = build_base_commands(config)
 
     # Join the cluster
     node_config['runcmd'].append(r'kubeadm join --token {0} {1}-master:6443 --discovery-token-unsafe-skip-ca-verification'.format(token, config['host-prefix']))
 
     # Add network config
     node_config['write_files'] = build_network_config(config, node)
+
+    # If batman is selected, then add it to the writefiles
+    node_config['write_files'].append(configure_batman(node))
 
     #Write the file
     filename = "{0}-node{1}.yaml".format(config['host-prefix'], node)

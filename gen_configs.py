@@ -88,7 +88,7 @@ def build_users(config):
     return users
 
 
-def configure_alfred(node):
+def configure_alfred():
     """
         Adds the systemd unit file to start
     """
@@ -101,6 +101,19 @@ def configure_alfred(node):
 
     return alfred_unit
 
+
+def configure_batvis(node):
+    """
+        Adds the batman vis service file
+    """
+    batvis_unit = {}
+    batvis_content = """[Unit]\nDescription=batadv-vis\n\n[Service]\nExecStart=/usr/local/sbin/batadv-vis -i bat0 -s\nRestart=always\nRestartSec=10s\n\n[Install]\nWantedBy=multi-user.target"""
+    batvis_unit['content'] = base64.b64encode(bytes(batvis_content, "utf-8"))
+    batvis_unit['encoding'] = "b64"
+    batvis_unit['path'] = r'/etc/systemd/system/batadv-vis.service'
+
+    return batvis_unit
+
 def build_network_config(config, node):
     writefiles = []
 
@@ -109,10 +122,10 @@ def build_network_config(config, node):
         wlan0 = {}
         if not config['network']['wlan']['mesh']:
             LOG.debug("Configuring regular wireless connection")
-    
+
             # Create the interfaces file
             wlan0_content = """allow-hotplug wlan0\niface wlan0 inet dhcp\nwpa-conf /etc/wpa_supplicant/wpa_supplicant.conf\niface default inet dhcp\n"""
-    
+
             # Create the wpa supplicant
             supplicant = {}
             supplicant['path'] = "/etc/wpa_supplicant/wpa_supplicant.conf"
@@ -130,7 +143,7 @@ def build_network_config(config, node):
             bat0['path'] = r'/etc/network/interfaces.d/bat0'
             bat0['encoding'] = "b64"
             writefiles.append(bat0)
-  
+
 
         wlan0['content'] = base64.b64encode(bytes(wlan0_content, "utf-8"))
         wlan0['encoding'] = "b64"
@@ -187,12 +200,6 @@ def build_base_commands(config):
         cmds.append(r'git clone https://git.open-mesh.org/batctl.git')
         cmds.append(r'cd batctl && make install')
 
-        # Get and build alfred, then start the service
-        cmds.append(r'cd && git clone https://git.open-mesh.org/alfred.git')
-        cmds.append(r'cd alfred && make install')
-        cmds.append(r'systemctl enable alfred')
-        cmds.append(r'systemctl start alfred')
-
         # Enable the batman adv kernel module
         cmds.append(r'modprobe batman-adv')
         cmds.append(r'echo "batman-adv" >> /etc/modules')
@@ -202,6 +209,18 @@ def build_base_commands(config):
         cmds.append(r'ifup bat0')
         cmds.append(r'ip link set up dev bat0')
         cmds.append(r'avahi-autoipd bat0 -D --start 169.254.42.0')
+
+        # Get and build alfred, then start the service
+        cmds.append(r'cd && git clone https://git.open-mesh.org/alfred.git')
+        cmds.append(r'cd alfred && make install')
+        cmds.append(r'systemctl enable alfred')
+        cmds.append(r'systemctl start alfred')
+
+        # Get and start batman-vis
+        cmds.append(r'cd && git clone https://git.open-mesh.org/vis.git')
+        cmds.append(r'cd vis && make install')
+        cmds.append(r'systemctl enable batadv-vis')
+        cmds.append(r'systemctl start batadv-vis')
 
         # Start up avahi-autoipd to get an address
         cmds.append(r'avahi-autoipd dev bat0')
@@ -243,7 +262,8 @@ def build_master(config, token):
 
     # If batman is selected, then add it to the writefiles
     if config['network']['wlan']['mesh']:
-        master_config['write_files'].append(configure_alfred(200))
+        master_config['write_files'].append(configure_alfred())
+        master_config['write_files'].append(configure_batvis())
 
     # Write the file
     filename = "{0}-master.yaml".format(config['host-prefix'])
@@ -275,7 +295,8 @@ def build_node( config, token, node):
 
     # If batman is selected, then add it to the writefiles
     if config['network']['wlan']['mesh']:
-        node_config['write_files'].append(configure_alfred(node))
+        node_config['write_files'].append(configure_alfred())
+        node_config['write_files'].append(configure_batvis())
 
     #Write the file
     filename = "{0}-node{1}.yaml".format(config['host-prefix'], node)

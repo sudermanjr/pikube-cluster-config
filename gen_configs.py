@@ -208,7 +208,7 @@ def build_base_commands(config):
         cmds.append(r'ip link set up dev wlan0')
         cmds.append(r'ifup bat0')
         cmds.append(r'ip link set up dev bat0')
-        cmds.append(r'avahi-autoipd bat0 -D --start 169.254.42.0')
+        cmds.append(r'avahi-autoipd bat0 -D')
 
         # Get and build alfred, then start the service
         cmds.append(r'cd && git clone https://git.open-mesh.org/alfred.git')
@@ -221,9 +221,6 @@ def build_base_commands(config):
         cmds.append(r'cd vis && make install')
         cmds.append(r'systemctl enable batadv-vis')
         cmds.append(r'systemctl start batadv-vis')
-
-        # Start up avahi-autoipd to get an address
-        cmds.append(r'avahi-autoipd dev bat0')
 
     return cmds
 

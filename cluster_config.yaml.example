@@ -11,6 +11,7 @@ network:
     psk: "A password should be defined here."
   lan:
     enabled: true
+    dhcp: true #This makes the next option useless.  
     cidr: '10.3.14.0/24' # Must be an empty cidr.  We will use common addresses like 1-5 and 200
 kubeadm:
   discoveryURL: 

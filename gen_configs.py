@@ -196,6 +196,11 @@ def build_base_commands(config):
         # Enable the batman adv kernel module
         cmds.append(r'modprobe batman-adv')
 
+        # Start the interfaces for the mesh
+        cmds.append(r'ip link set up dev wlan0')
+        cmds.append(r'ip link set up dev bat0')
+        cmds.append(r'avahi-autoipd bat0')
+
     return cmds
 
 

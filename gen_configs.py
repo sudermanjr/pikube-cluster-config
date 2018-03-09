@@ -194,11 +194,15 @@ def build_base_commands(config):
     # Add batman specific commands if it is enabled
     if config['network']['wlan']['mesh']:
         # Install batman adv deps
-        cmds.append(r'apt-get install -y libnl-3-dev libnl-genl-3-dev libcap-dev libgps-dev make gcc avahi-autoipd avahi-browse')
+        cmds.append(r'apt-get install -y libnl-3-dev libnl-genl-3-dev libcap-dev libgps-dev make gcc avahi-autoipd avahi-utils build-essential linux-headers-4.4.50-hypriotos-v7+')
 
         # Get batctl and build it
         cmds.append(r'git clone https://git.open-mesh.org/batctl.git')
         cmds.append(r'cd batctl && make install')
+
+#        # Download the batman adv kernel module
+#        cmds.append(r'curl -o batman-adv-2018.0.tar.gz https://downloads.open-mesh.org/batman/stable/sources/batman-adv/batman-adv-2018.0.tar.gz')
+#        cmds.append(r'tar -zxvf batman-adv-2018.0.tar.gz')
 
         # Enable the batman adv kernel module
         cmds.append(r'modprobe batman-adv')
@@ -234,9 +238,12 @@ def build_master(config, token):
     master_config['runcmd'] = build_base_commands(config)
 
     # Set the master interface
-    master_iface = '0.0.0.0'
     if config['network']['wlan']['mesh']:
         master_iface = "$(ip addr show bat0 | grep -Po 'inet \K[\d.]+')"
+        LOG.debug("Used mesh configuration for master_iface")
+    else:
+        master_iface = '0.0.0.0'
+        LOG.debug("Set master_iface to 0.0.0.0")
 
     # Add the commands to init the master
     master_config['runcmd'].append(r'kubeadm init --token {0} --feature-gates=SelfHosting={1} --apiserver-advertise-address {2}'.format(token, config['kubeadm']['selfHosted'], master_iface.strip()))
@@ -245,6 +252,8 @@ def build_master(config, token):
         master_config['runcmd'].append(r'export kubever=$(kubectl version | base64 | tr -d "\n")')
         master_config['runcmd'].append(r'kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$kubever"')
         master_config['runcmd'].append(r'kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/master/src/deploy/alternative/kubernetes-dashboard-arm.yaml')
+        master_config['runcmd'].append(r'mkdir -p /root/.kube')
+        master_config['runcmd'].append(r'cp /etc/kubernetes/admin.conf /root/.kube/config')
 
     # Add the other config options
     master_config['locale'] = "en_US.UTF-8"
@@ -280,8 +289,14 @@ def build_node( config, token, node):
     # Add base run commands
     node_config['runcmd'] = build_base_commands(config)
 
+    # Master Address
+    if config['network']['wlan']['mesh']:
+        master_ip = "$(avahi-resolve -n pikube-node1.local -4)"
+    else:
+        master_ip = "{0}-master".format(config['host_prefix'])
+
     # Join the cluster
-    node_config['runcmd'].append(r'kubeadm join --token {0} {1}-master:6443 --discovery-token-unsafe-skip-ca-verification'.format(token, config['host-prefix']))
+    node_config['runcmd'].append(r'kubeadm join --token {0} {1}:6443 --discovery-token-unsafe-skip-ca-verification'.format(token, master_ip.strip()))
 
     # Add network config
     node_config['write_files'] = build_network_config(config, node)

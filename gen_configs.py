@@ -102,7 +102,7 @@ def configure_alfred():
     return alfred_unit
 
 
-def configure_batvis(node):
+def configure_batvis():
     """
         Adds the batman vis service file
     """
@@ -194,7 +194,7 @@ def build_base_commands(config):
     # Add batman specific commands if it is enabled
     if config['network']['wlan']['mesh']:
         # Install batman adv deps
-        cmds.append(r'apt-get install -y libnl-3-dev libnl-genl-3-dev libcap-dev libgps-dev make gcc avahi-autoipd')
+        cmds.append(r'apt-get install -y libnl-3-dev libnl-genl-3-dev libcap-dev libgps-dev make gcc avahi-autoipd avahi-browse')
 
         # Get batctl and build it
         cmds.append(r'git clone https://git.open-mesh.org/batctl.git')

@@ -9,7 +9,9 @@ network:
     enabled: true
     ssid: "pikube"
     psk: "A password should be defined here."
-    mesh: true # This will enable mesh networking on wireless.  Supersedes other wireless settings
+    mesh: 
+      enabled: true # This will enable mesh networking on wireless.  Supersedes other wireless settings
+      name: "awesome-supercool-mesh"
   lan:
     enabled: true
     dhcp: true #This makes the next option useless.  

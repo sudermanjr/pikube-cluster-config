@@ -107,7 +107,18 @@ def configure_batvis():
         Adds the batman vis service file
     """
     batvis_unit = {}
-    batvis_content = """[Unit]\nDescription=batadv-vis\n\n[Service]\nExecStart=/usr/local/sbin/batadv-vis -i bat0 -s\nRestart=always\nRestartSec=10s\n\n[Install]\nWantedBy=multi-user.target"""
+    batvis_content = """
+[Unit]
+Description=batadv-vis
+
+[Service]
+ExecStart=/usr/local/sbin/batadv-vis -i bat0 -s
+Restart=always
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target
+"""
     batvis_unit['content'] = base64.b64encode(bytes(batvis_content, "utf-8"))
     batvis_unit['encoding'] = "b64"
     batvis_unit['path'] = r'/etc/systemd/system/batadv-vis.service'
@@ -158,7 +169,7 @@ def build_network_config(config, node):
     # wlan - if mesh is not active
     if config['network']['wlan']['enabled']:
         wlan0 = {}
-        if not config['network']['wlan']['mesh']:
+        if not config['network']['wlan']['mesh']['enabled']:
             LOG.debug("Configuring regular wireless connection")
 
             # Create the interfaces file
@@ -168,12 +179,31 @@ def build_network_config(config, node):
             supplicant = {}
             supplicant['path'] = "/etc/wpa_supplicant/wpa_supplicant.conf"
             supplicant['encoding'] = "b64"
-            supplicant_content = """ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev\nupdate_config=1\nnetwork={{\n  ssid="{0}"\n  psk="{1}"\n  proto=RSN\n  key_mgmt=WPA-PSK\n  pairwise=CCMP\n  auth_alg=OPEN\n  }}\n""".format(config['network']['wlan']['ssid'], config['network']['wlan']['psk'])
+            supplicant_content = """
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+update_config=1
+network={{
+  ssid="{0}"
+  psk="{1}"
+  proto=RSN
+  key_mgmt=WPA-PSK
+  pairwise=CCMP
+  auth_alg=OPEN
+  }}
+""".format(config['network']['wlan']['ssid'], config['network']['wlan']['psk'])
             supplicant['content'] = base64.b64encode(bytes(supplicant_content, "utf-8"))
             writefiles.append(supplicant)
         else:
             LOG.debug("Configuring wifi for mesh networking")
-            wlan0_content = """auto wlan0\niface wlan0 inet6 manual\n  wireless-channel 1\n  wireless-essid killer-mesh\n  wireless-mode ad-hoc\n  wireless-ap 02:12:34:56:78:9A\n  pre-up /sbin/ifconfig wlan0 mtu 1532\n"""
+            wlan0_content = """
+auto wlan0
+iface wlan0 inet6 manual
+  wireless-channel {1}
+  wireless-essid {0}
+  wireless-mode ad-hoc
+  wireless-ap 02:12:34:56:78:9A
+  pre-up /sbin/ifconfig wlan0 mtu 1532
+""".format(config['network']['wlan']['mesh']['name'], config['network']['wlan']['mesh']['channel'])
 
             bat0 = {}
             if node is 200: # Master node static
@@ -256,7 +286,7 @@ def build_base_commands(config):
     cmds.append(r'apt-get install -y kubelet kubeadm kubectl')
 
     # Add batman specific commands if it is enabled
-    if config['network']['wlan']['mesh']:
+    if config['network']['wlan']['mesh']['enabled']:
         # Install batman adv deps
         cmds.append(r'apt-get install -y libnl-3-dev libnl-genl-3-dev libcap-dev libgps-dev make gcc build-essential linux-headers-4.4.50-hypriotos-v7+')
 
@@ -301,7 +331,7 @@ def build_master(config, token):
     master_config['runcmd'] = build_base_commands(config)
 
     # Set the master interface
-    if config['network']['wlan']['mesh']:
+    if config['network']['wlan']['mesh']['enabled']:
         master_iface = "$(ip addr show bat0 | grep -Po 'inet \K[\d.]+')"
         LOG.debug("Used mesh configuration for master_iface")
     else:
@@ -327,7 +357,7 @@ def build_master(config, token):
     master_config['write_files'] = build_network_config(config, 200)
 
     # If batman is selected, then add it to the writefiles
-    if config['network']['wlan']['mesh']:
+    if config['network']['wlan']['mesh']['enabled']:
         master_config['write_files'].append(configure_alfred())
         master_config['write_files'].append(configure_batvis())
         master_config['write_files'].append(dhcp_default())
@@ -356,7 +386,8 @@ def build_node( config, token, node):
     node_config['runcmd'] = build_base_commands(config)
 
     # Master Address
-    if config['network']['wlan']['mesh']:
+    if config['network']['wlan']['mesh']['enabled']:
+        master_ip = "$(avahi-resolve -n pikube-node1.local -4)"
         master_ip = "$(10.12.29.254)"
     else:
         master_ip = "{0}-master".format(config['host_prefix'])
@@ -368,7 +399,7 @@ def build_node( config, token, node):
     node_config['write_files'] = build_network_config(config, node)
 
     # If batman is selected, then add it to the writefiles
-    if config['network']['wlan']['mesh']:
+    if config['network']['wlan']['mesh']['enabled']:
         node_config['write_files'].append(configure_alfred())
         node_config['write_files'].append(configure_batvis())
 

@@ -114,6 +114,44 @@ def configure_batvis():
 
     return batvis_unit
 
+
+def dhcp_default():
+    """
+    Creates the /etc/default/isc-dhcp-server file
+    """
+    dhcp_default = {}
+    dhcp_default_content = """INTERFACES='bat0'"""
+    dhcp_default['path'] = r'/etc/default/isc-dhcp-server'
+    dhcp_default['encoding'] = "b64"
+    dhcp_default['content'] = base64.b64encode(bytes(dhcp_default_content, "utf-8"))
+    return dhcp_default
+
+def configure_dhcp():
+    """
+        Creates a dhcp config file
+    """
+    dhcp_config = {}
+    dhcp_config_content = """
+ddns-update-style none;
+default-lease-time 600;
+max-lease-time 7200;
+option domain-name-servers 84.200.69.80 84.200.70.40;
+option domain-name "pikube.local";
+authorative;
+log-facility local7;
+
+subnet 10.12.29.0 netmask 255.255.255.0 {
+  range 10.12.29.10 10.12.29.100;
+  option routers = 10.12.29.254;
+}
+"""
+
+    dhcp_config['path'] = r'/etc/dhcp/dhcpd.conf'
+    dhcp_config['encoding'] = "b64"
+    dhcp_config['content'] = base64.b64encode(bytes(dhcp_config_content, "utf-8"))
+    return dhcp_config
+
+
 def build_network_config(config, node):
     writefiles = []
 
@@ -138,7 +176,27 @@ def build_network_config(config, node):
             wlan0_content = """auto wlan0\niface wlan0 inet6 manual\n  wireless-channel 1\n  wireless-essid killer-mesh\n  wireless-mode ad-hoc\n  wireless-ap 02:12:34:56:78:9A\n  pre-up /sbin/ifconfig wlan0 mtu 1532\n"""
 
             bat0 = {}
-            bat0_content = """auto bat0\niface bat0 inet6 auto\n  pre-up /usr/local/sbin/batctl if add wlan0"""
+            if node is 200: # Master node static
+                bat0_content = """
+auto bat0
+iface bat0 inet6 auto
+  pre-up /usr/local/sbin/batctl if add wlan0
+  pre-up /usr/local/sbin/batctl gw_mode server
+ 
+iface bat0 inet static
+  address 10.12.29.254
+  netmask 255.255.255.0
+  gateway 10.12.29.254
+"""
+            else: # Other nodes DHCP
+                bat0_content = """
+auto bat0
+iface bat0 inet6 auto
+  pre-up /usr/local/sbin/batctl if add wlan0
+  pre-up /usr/local/sbin/batctl gw_mode client
+
+iface bat0 inet dhcp 
+"""
             bat0['content'] = base64.b64encode(bytes(bat0_content, "utf-8"))
             bat0['path'] = r'/etc/network/interfaces.d/bat0'
             bat0['encoding'] = "b64"
@@ -166,7 +224,13 @@ def build_network_config(config, node):
             iplist = list(network)
             ip = iplist[node]
             gateway = iplist[254]
-            content = """auto eth0\niface eth0 inet static\n  address {0}\n  netmask {1}\n  gateway {2}\n""".format(ip,netmask,gateway)
+            content = """
+auto eth0
+iface eth0 inet static
+  address {0}
+  netmask {1}
+  gateway {2}
+""".format(ip,netmask,gateway)
 
         eth0['content'] = base64.b64encode(bytes(content,"utf-8"))
         writefiles.append(eth0)
@@ -246,6 +310,7 @@ def build_master(config, token):
         LOG.debug("Set master_iface to 0.0.0.0")
 
     # Add the commands to init the master
+    master_config['runcmd'].append(r'apt-get install isc-dhcp-server')
     master_config['runcmd'].append(r'kubeadm init --token {0} --feature-gates=SelfHosting={1} --apiserver-advertise-address {2}'.format(token, config['kubeadm']['selfHosted'], master_iface.strip()))
     master_config['runcmd'].append(r'export KUBECONFIG=/etc/kubernetes/admin.conf')
     if config['kubeadm']['network'] == 'weavenet':
@@ -266,6 +331,8 @@ def build_master(config, token):
     if config['network']['wlan']['mesh']:
         master_config['write_files'].append(configure_alfred())
         master_config['write_files'].append(configure_batvis())
+        master_config['write_files'].append(dhcp_default())
+        master_config['write_files'].append(configure_dhcp())
 
     # Write the file
     filename = "{0}-master.yaml".format(config['host-prefix'])
@@ -291,7 +358,7 @@ def build_node( config, token, node):
 
     # Master Address
     if config['network']['wlan']['mesh']:
-        master_ip = "$(avahi-resolve -n pikube-node1.local -4)"
+        master_ip = "$(10.12.29.254)"
     else:
         master_ip = "{0}-master".format(config['host_prefix'])
 

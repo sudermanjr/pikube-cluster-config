@@ -66,6 +66,10 @@ Find the mesh IPs
 avahi-browse --terminate --ignore-local --verbose -p  -a | grep bat | grep IPv4
 ```
 
+Decode a file out of an existing config for debugging
+```
+decode_file.sh <prefix>-master.yaml <filename>
+
 ## References
 
 This is all utilizing a ton of work by hypriot.  Thanks!

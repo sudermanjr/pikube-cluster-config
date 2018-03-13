@@ -76,3 +76,7 @@ This is all utilizing a ton of work by hypriot.  Thanks!
 
 https://blog.hypriot.com/post/cloud-init-cloud-on-hypriot-x64/
 https://github.com/hypriot/flash
+
+## Known Issues
+
+Weave install command doesn't seem to work with 1.9.3.  I have pinned to 1.9.1

@@ -146,14 +146,13 @@ def configure_dhcp():
 ddns-update-style none;
 default-lease-time 600;
 max-lease-time 7200;
-option domain-name-servers 84.200.69.80 84.200.70.40;
+option domain-name-servers 84.200.69.80, 84.200.70.40;
 option domain-name "pikube.local";
 authorative;
 log-facility local7;
 
 subnet 10.12.29.0 netmask 255.255.255.0 {
   range 10.12.29.10 10.12.29.100;
-  option routers = 10.12.29.254;
 }
 """
 

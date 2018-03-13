@@ -282,7 +282,7 @@ def build_base_commands(config):
     cmds.append(r'curl -ks  https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -')
     cmds.append(r'echo "deb http://apt.kubernetes.io/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list')
     cmds.append(r'apt-get update')
-    cmds.append(r'apt-get install -y kubelet kubeadm={0}-00 kubectl'.format(config['kubeadm']['version'])
+    cmds.append(r'apt-get install -y kubelet kubeadm kubectl')
 
     # Add batman specific commands if it is enabled
     if config['network']['wlan']['mesh']['enabled']:
@@ -338,8 +338,8 @@ def build_master(config, token):
         LOG.debug("Set master_iface to 0.0.0.0")
 
     # Add the commands to init the master
-    master_config['runcmd'].append(r'apt-get install isc-dhcp-server')
-    master_config['runcmd'].append(r'kubeadm init --token {0} --feature-gates=SelfHosting={1} --apiserver-advertise-address {2} --kubernetes-version {3}'.format(token, config['kubeadm']['selfHosted'], master_iface.strip(), config['kubeadm']['version']))
+    master_config['runcmd'].append(r'apt-get install -y isc-dhcp-server')
+    master_config['runcmd'].append(r'kubeadm init --token {0} --feature-gates=SelfHosting={1} --apiserver-advertise-address {2}'.format(token, config['kubeadm']['selfHosted'], master_iface.strip()))
     master_config['runcmd'].append(r'export KUBECONFIG=/etc/kubernetes/admin.conf')
     if config['kubeadm']['network'] == 'weavenet':
         master_config['runcmd'].append(r'export kubever=$(kubectl version | base64 | tr -d "\n")')
@@ -386,8 +386,7 @@ def build_node( config, token, node):
 
     # Master Address
     if config['network']['wlan']['mesh']['enabled']:
-        master_ip = "$(avahi-resolve -n pikube-node1.local -4)"
-        master_ip = "$(10.12.29.254)"
+        master_ip = "10.12.29.254"
     else:
         master_ip = "{0}-master".format(config['host_prefix'])
 

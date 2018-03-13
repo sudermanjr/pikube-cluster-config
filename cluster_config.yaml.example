@@ -21,4 +21,3 @@ kubeadm:
   network: weavenet
   token: KUBEADME_TOKEN # only if you want.  Delete this to generate one on the fly
   selfHosted: true
-  version: 1.8.9 # Kubernetes version. Controls package install and init

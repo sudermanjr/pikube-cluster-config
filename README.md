@@ -66,9 +66,17 @@ Find the mesh IPs
 avahi-browse --terminate --ignore-local --verbose -p  -a | grep bat | grep IPv4
 ```
 
+Decode a file out of an existing config for debugging
+```
+decode_file.sh <prefix>-master.yaml <filename>
+
 ## References
 
 This is all utilizing a ton of work by hypriot.  Thanks!
 
 https://blog.hypriot.com/post/cloud-init-cloud-on-hypriot-x64/
 https://github.com/hypriot/flash
+
+## Known Issues
+
+Weave install command doesn't seem to work with 1.9.4. I have pinned to 1.8.9

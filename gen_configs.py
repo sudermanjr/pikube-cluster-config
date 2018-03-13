@@ -339,7 +339,7 @@ def build_master(config, token):
 
     # Add the commands to init the master
     master_config['runcmd'].append(r'apt-get install isc-dhcp-server')
-    master_config['runcmd'].append(r'kubeadm init --token {0} --feature-gates=SelfHosting={1} --apiserver-advertise-address {2}'.format(token, config['kubeadm']['selfHosted'], master_iface.strip()))
+    master_config['runcmd'].append(r'kubeadm init --token {0} --feature-gates=SelfHosting={1} --apiserver-advertise-address {2} --kubernetes-version {3}'.format(token, config['kubeadm']['selfHosted'], master_iface.strip(), config['kubeadm']['version']))
     master_config['runcmd'].append(r'export KUBECONFIG=/etc/kubernetes/admin.conf')
     if config['kubeadm']['network'] == 'weavenet':
         master_config['runcmd'].append(r'export kubever=$(kubectl version | base64 | tr -d "\n")')

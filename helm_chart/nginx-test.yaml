@@ -1,0 +1,124 @@
+---
+# Source: proxy/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-proxy-config-1.0.5
+  labels:
+    app: proxy
+    release: nginx
+data:
+  nginx.conf: |-
+    #MAJ_VERSION 1.0
+    user  nginx;
+    worker_processes  1;
+    
+    error_log  /var/log/nginx/error.log warn;
+    pid        /var/run/nginx.pid;
+    
+    
+    events {
+        worker_connections  1024;
+    }
+    
+    
+    http {
+        include       /etc/nginx/mime.types;
+        default_type  application/octet-stream;
+    
+        log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                          '$status $body_bytes_sent "$http_referer" '
+                          '"$http_user_agent" "$http_x_forwarded_for"';
+    
+        access_log  /var/log/nginx/access.log  main;
+    
+        sendfile        on;
+    
+        keepalive_timeout  86400;
+    
+        server {
+            location /nginx_status {
+              stub_status on;
+              access_log   off;
+              allow all;
+             }
+    
+    
+            # Catch everything else
+             location / {
+                 proxy_pass https://google.com;
+             }
+        }
+    }
+---
+# Source: proxy/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-proxy
+  labels:
+    app: proxy
+    release: nginx
+spec:
+  type: NodePort
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app: proxy
+    release: nginx
+---
+# Source: proxy/templates/deployment.yaml
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: nginx-proxy
+  labels:
+    app: proxy
+    release: nginx
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: proxy
+      release: nginx
+  template:
+    metadata:
+      labels:
+        app: proxy
+        release: nginx
+    spec:
+      containers:
+        - name: proxy
+          image: "nginx:alpine"
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - mountPath: /etc/nginx/nginx.conf
+              name: config
+              subPath: nginx.conf
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            
+      volumes:
+        - name: config
+          configMap:
+            name: nginx-proxy-config-1.0.5

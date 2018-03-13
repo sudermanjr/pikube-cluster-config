@@ -282,7 +282,7 @@ def build_base_commands(config):
     cmds.append(r'curl -ks  https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -')
     cmds.append(r'echo "deb http://apt.kubernetes.io/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list')
     cmds.append(r'apt-get update')
-    cmds.append(r'apt-get install -y kubelet kubeadm kubectl')
+    cmds.append(r'apt-get install -y kubelet kubeadm={0}-00 kubectl'.format(config['kubeadm']['version'])
 
     # Add batman specific commands if it is enabled
     if config['network']['wlan']['mesh']['enabled']:

@@ -79,4 +79,4 @@ https://github.com/hypriot/flash
 
 ## Known Issues
 
-Weave install command doesn't seem to work with 1.9.3.  I have pinned to 1.9.1
+Weave install command doesn't seem to work with 1.9.4. I have pinned to 1.8.9

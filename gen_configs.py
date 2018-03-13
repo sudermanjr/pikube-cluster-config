@@ -288,7 +288,7 @@ def build_base_commands(config):
     # Add batman specific commands if it is enabled
     if config['network']['wlan']['mesh']['enabled']:
         # Install batman adv deps
-        cmds.append(r'apt-get install -y libnl-3-dev libnl-genl-3-dev libcap-dev libgps-dev make gcc build-essential linux-headers-4.4.50-hypriotos-v7+')
+        cmds.append(r'apt-get install -y libnl-3-dev libnl-genl-3-dev libcap-dev libgps-dev make gcc')
 
         # Get batctl and build it
         cmds.append(r'git clone https://git.open-mesh.org/batctl.git')

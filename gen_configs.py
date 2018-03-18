@@ -388,7 +388,7 @@ def build_node( config, token, node):
     if config['network']['wlan']['mesh']['enabled']:
         master_ip = "10.12.29.254"
     else:
-        master_ip = "{0}-master".format(config['host_prefix'])
+        master_ip = "{0}-master".format(config['host-prefix'])
 
     # Join the cluster
     node_config['runcmd'].append(r'kubeadm join --token {0} {1}:6443 --discovery-token-unsafe-skip-ca-verification'.format(token, master_ip.strip()))

@@ -277,17 +277,17 @@ def build_base_commands(config):
     cmds.append(r'ifup eth0')
     cmds.append(r'apt-get update')
     cmds.append(r'apt-get upgrade')
-    cmds.append(r'apt-get install -y curl jq git vim dnsutils')
+    cmds.append(r'apt-get install -o Dpkg::Options::="--force-confold" --force-yes -y curl jq git vim dnsutils')
     cmds.append(r'curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg')
     cmds.append(r'curl -ks  https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -')
     cmds.append(r'echo "deb http://apt.kubernetes.io/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list')
     cmds.append(r'apt-get update')
-    cmds.append(r'apt-get install -y kubelet kubeadm kubectl')
+    cmds.append(r'apt-get install -o Dpkg::Options::="--force-confold" --force-yes -y kubelet kubeadm kubectl')
 
     # Add batman specific commands if it is enabled
     if config['network']['wlan']['mesh']['enabled']:
         # Install batman adv deps
-        cmds.append(r'apt-get install -y libnl-3-dev libnl-genl-3-dev libcap-dev libgps-dev make gcc')
+        cmds.append(r'apt-get install -o Dpkg::Options::="--force-confold" --force-yes -y libnl-3-dev libnl-genl-3-dev libcap-dev libgps-dev make gcc')
 
         # Get batctl and build it
         cmds.append(r'git clone https://git.open-mesh.org/batctl.git')
@@ -338,7 +338,7 @@ def build_master(config, token):
         LOG.debug("Set master_iface to 0.0.0.0")
 
     # Add the commands to init the master
-    master_config['runcmd'].append(r'apt-get install -y isc-dhcp-server')
+    master_config['runcmd'].append(r'apt-get install -o Dpkg::Options::="--force-confold" --force-yes -y isc-dhcp-server')
     master_config['runcmd'].append(r'kubeadm init --token {0} --feature-gates=SelfHosting={1} --apiserver-advertise-address {2}'.format(token, config['kubeadm']['selfHosted'], master_iface.strip()))
     master_config['runcmd'].append(r'export KUBECONFIG=/etc/kubernetes/admin.conf')
     if config['kubeadm']['network'] == 'weavenet':

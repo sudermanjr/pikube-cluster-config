@@ -14,5 +14,5 @@ for i in $(ls $1*.yaml); do
     flash \
         --bootconf no-uart-config.txt \
         --userdata $i \
-        https://github.com/hypriot/image-builder-rpi/releases/download/v1.7.1/hypriotos-rpi-v1.7.1.img.zip
+        https://github.com/hypriot/image-builder-rpi/releases/download/v1.9.0/hypriotos-rpi-v1.9.0.img.zip
 done

@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 
-import json
 import yaml
 import string
 import secrets
 import random
-import os
 import crypt
 import pprint
 import rstr
@@ -13,11 +11,12 @@ import netaddr
 import base64
 import logging
 
+
 def gen_pass():
     """
     Generates a password between 35 and 45 chars
     """
-    length = random.randint(7,9)*5
+    length = random.randint(7, 9)*5
     alphabet = string.ascii_letters + string.digits
     password = ''.join(secrets.choice(alphabet) for i in range(length))
     return password
@@ -65,7 +64,7 @@ def build_users(config):
         newuser['name'] = user['name']
         newuser['shell'] = '/bin/bash'
         passwd = gen_pass()
-        newuser['passwd'] =  sha512_crypt(passwd, None, 4096)
+        newuser['passwd'] = sha512_crypt(passwd, None, 4096)
 
         newuser['lock_passwd'] = False
         newuser['chpasswd'] = {'expire': False}
@@ -77,7 +76,8 @@ def build_users(config):
         else:
             # Log the password so that we can find it later, and enable pwauth
             newuser['ssh_pwauth'] = True
-        LOG.info('The password for {0} will be {1}'.format(user['name'], passwd))
+        LOG.info('The password for {0} will be {1}'
+                 .format(user['name'], passwd))
         # Give admins some stuff
         if user['admin']:
             newuser['sudo'] = 'ALL=(ALL) NOPASSWD:ALL'
@@ -93,9 +93,13 @@ def configure_alfred():
         Adds the systemd unit file to start
     """
     alfred_unit = {}
-    alfred_unit_content = """[Unit]\nDescription=alfred\n\n[Service]\nExecStart=/usr/local/sbin/alfred -i bat0 -m\nRestart=always\nRestartSec=10s\n\n[Install]\nWantedBy=multi-user.target"""
+    alfred_unit_content = """[Unit]\nDescription=alfred\n
+\n[Service]\nExecStart=/usr/local/sbin/alfred -i bat0 -m\n
+Restart=always\nRestartSec=10s\n\n[Install]\n
+WantedBy=multi-user.target"""
 
-    alfred_unit['content'] = base64.b64encode(bytes(alfred_unit_content, "utf-8"))
+    alfred_unit['content'] = base64.b64encode(
+            bytes(alfred_unit_content, "utf-8"))
     alfred_unit['encoding'] = "b64"
     alfred_unit['path'] = r'/etc/systemd/system/alfred.service'
 
@@ -134,8 +138,10 @@ def dhcp_default():
     dhcp_default_content = """INTERFACES='bat0'"""
     dhcp_default['path'] = r'/etc/default/isc-dhcp-server'
     dhcp_default['encoding'] = "b64"
-    dhcp_default['content'] = base64.b64encode(bytes(dhcp_default_content, "utf-8"))
+    dhcp_default['content'] = base64.b64encode(
+            bytes(dhcp_default_content, "utf-8"))
     return dhcp_default
+
 
 def configure_dhcp():
     """
@@ -158,7 +164,8 @@ subnet 10.12.29.0 netmask 255.255.255.0 {
 
     dhcp_config['path'] = r'/etc/dhcp/dhcpd.conf'
     dhcp_config['encoding'] = "b64"
-    dhcp_config['content'] = base64.b64encode(bytes(dhcp_config_content, "utf-8"))
+    dhcp_config['content'] = base64.b64encode(
+            bytes(dhcp_config_content, "utf-8"))
     return dhcp_config
 
 
@@ -172,7 +179,8 @@ def build_network_config(config, node):
             LOG.debug("Configuring regular wireless connection")
 
             # Create the interfaces file
-            wlan0_content = """allow-hotplug wlan0\niface wlan0 inet dhcp\nwpa-conf /etc/wpa_supplicant/wpa_supplicant.conf\niface default inet dhcp\n"""
+            wlan0_content = """allow-hotplug wlan0\niface wlan0 inet dhcp\n
+wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf\niface default inet dhcp\n"""
 
             # Create the wpa supplicant
             supplicant = {}
@@ -190,7 +198,8 @@ network={{
   auth_alg=OPEN
   }}
 """.format(config['network']['wlan']['ssid'], config['network']['wlan']['psk'])
-            supplicant['content'] = base64.b64encode(bytes(supplicant_content, "utf-8"))
+            supplicant['content'] = base64.b64encode(
+                    bytes(supplicant_content, "utf-8"))
             writefiles.append(supplicant)
         else:
             LOG.debug("Configuring wifi for mesh networking")
@@ -202,35 +211,35 @@ iface wlan0 inet6 manual
   wireless-mode ad-hoc
   wireless-ap 02:12:34:56:78:9A
   pre-up /sbin/ifconfig wlan0 mtu 1532
-""".format(config['network']['wlan']['mesh']['name'], config['network']['wlan']['mesh']['channel'])
+""".format(config['network']['wlan']['mesh']['name'], config
+                 ['network']['wlan']['mesh']['channel'])
 
             bat0 = {}
-            if node is 200: # Master node static
+            if node is 200:  # Master node static
                 bat0_content = """
 auto bat0
 iface bat0 inet6 auto
   pre-up /usr/local/sbin/batctl if add wlan0
   pre-up /usr/local/sbin/batctl gw_mode server
- 
+
 iface bat0 inet static
   address 10.12.29.254
   netmask 255.255.255.0
   gateway 10.12.29.254
 """
-            else: # Other nodes DHCP
+            else:  # Other nodes DHCP
                 bat0_content = """
 auto bat0
 iface bat0 inet6 auto
   pre-up /usr/local/sbin/batctl if add wlan0
   pre-up /usr/local/sbin/batctl gw_mode client
 
-iface bat0 inet dhcp 
+iface bat0 inet dhcp
 """
             bat0['content'] = base64.b64encode(bytes(bat0_content, "utf-8"))
             bat0['path'] = r'/etc/network/interfaces.d/bat0'
             bat0['encoding'] = "b64"
             writefiles.append(bat0)
-
 
         wlan0['content'] = base64.b64encode(bytes(wlan0_content, "utf-8"))
         wlan0['encoding'] = "b64"
@@ -245,7 +254,9 @@ iface bat0 inet dhcp
 
         if config['network']['lan']['dhcp']:
             LOG.debug('Lan DHCP Selected')
-            content = """auto eth0\nallow-hotplug eth0\niface eth0 inet dhcp\n"""
+            content = """auto eth0
+allow-hotplug eth0
+iface eth0 inet dhcp\n"""
         else:
             LOG.debug('Lan Manual Configuration')
             network = netaddr.IPNetwork(config['network']['lan']['cidr'])
@@ -259,9 +270,9 @@ iface eth0 inet static
   address {0}
   netmask {1}
   gateway {2}
-""".format(ip,netmask,gateway)
+""".format(ip, netmask, gateway)
 
-        eth0['content'] = base64.b64encode(bytes(content,"utf-8"))
+        eth0['content'] = base64.b64encode(bytes(content, "utf-8"))
         writefiles.append(eth0)
     return writefiles
 
@@ -277,25 +288,41 @@ def build_base_commands(config):
     cmds.append(r'ifup eth0')
     cmds.append(r'apt-get update')
     cmds.append(r'apt-get upgrade')
-    cmds.append(r'apt-get install -o Dpkg::Options::="--force-confold" --force-yes -y curl jq git vim dnsutils')
-    cmds.append(r'curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg')
-    cmds.append(r'curl -ks  https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -')
-    cmds.append(r'echo "deb http://apt.kubernetes.io/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list')
-    cmds.append(r'apt-get update')
-    cmds.append(r'apt-get install -o Dpkg::Options::="--force-confold" --force-yes -y kubelet kubeadm kubectl')
+    cmds.append(
+            r'apt-get install -o Dpkg::Options::="--force-confold" '
+            '--force-yes -y curl jq git vim dnsutils wget')
+    cmds.append(
+            r'curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg')
+    cmds.append(
+            r'curl -ks  https://packages.cloud.google.com/apt/doc/apt-key.gpg '
+            '| apt-key add -')
+    cmds.append(
+            r'echo "deb http://apt.kubernetes.io/ kubernetes-xenial main" > '
+            '/etc/apt/sources.list.d/kubernetes.list')
+    cmds.append(
+            r'apt-get update')
+    cmds.append(
+            r'apt-get install -o Dpkg::Options::="--force-confold" --force-yes'
+            ' -y kubelet kubeadm kubectl')
+    cmds.append(
+            r'mkdir /onoffshim')
+    cmds.append(
+            r'cd /onoffshim')
+    cmds.append(
+            r'wget https://get.pimoroni.com/onoffshim')
+    cmds.append(
+            r'chmod +x onoffshim')
 
     # Add batman specific commands if it is enabled
     if config['network']['wlan']['mesh']['enabled']:
         # Install batman adv deps
-        cmds.append(r'apt-get install -o Dpkg::Options::="--force-confold" --force-yes -y libnl-3-dev libnl-genl-3-dev libcap-dev libgps-dev make gcc')
+        cmds.append(r'apt-get install -o Dpkg::Options::="--force-confold" '
+                    '--force-yes -y libnl-3-dev libnl-genl-3-dev libcap-dev '
+                    'libgps-dev make gcc')
 
         # Get batctl and build it
         cmds.append(r'git clone https://git.open-mesh.org/batctl.git')
         cmds.append(r'cd batctl && make install')
-
-#        # Download the batman adv kernel module
-#        cmds.append(r'curl -o batman-adv-2018.0.tar.gz https://downloads.open-mesh.org/batman/stable/sources/batman-adv/batman-adv-2018.0.tar.gz')
-#        cmds.append(r'tar -zxvf batman-adv-2018.0.tar.gz')
 
         # Enable the batman adv kernel module
         cmds.append(r'modprobe batman-adv')
@@ -338,15 +365,31 @@ def build_master(config, token):
         LOG.debug("Set master_iface to 0.0.0.0")
 
     # Add the commands to init the master
-    master_config['runcmd'].append(r'apt-get install -o Dpkg::Options::="--force-confold" --force-yes -y isc-dhcp-server')
-    master_config['runcmd'].append(r'kubeadm init --token {0} --feature-gates=SelfHosting={1} --apiserver-advertise-address {2}'.format(token, config['kubeadm']['selfHosted'], master_iface.strip()))
-    master_config['runcmd'].append(r'export KUBECONFIG=/etc/kubernetes/admin.conf')
+    master_config['runcmd'].append(r'apt-get install -o Dpkg::Options::='
+                                   '"--force-confold" --force-yes -y '
+                                   'isc-dhcp-server')
+    master_config['runcmd'].append(r'kubeadm init --token {0} '
+                                   '--feature-gates=SelfHosting={1} '
+                                   '--apiserver-advertise-address {2}'
+                                   .format(token, config['kubeadm']
+                                           ['selfHosted'], master_iface
+                                           .strip()))
+    master_config['runcmd'].append(
+            r'export KUBECONFIG=/etc/kubernetes/admin.conf')
     if config['kubeadm']['network'] == 'weavenet':
-        master_config['runcmd'].append(r'export kubever=$(kubectl version | base64 | tr -d "\n")')
-        master_config['runcmd'].append(r'kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$kubever"')
-        master_config['runcmd'].append(r'kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/master/src/deploy/alternative/kubernetes-dashboard-arm.yaml')
-        master_config['runcmd'].append(r'mkdir -p /root/.kube')
-        master_config['runcmd'].append(r'cp /etc/kubernetes/admin.conf /root/.kube/config')
+        master_config['runcmd'].append(
+                r'export kubever=$(kubectl version | base64 | tr -d "\n")')
+        master_config['runcmd'].append(
+                r'kubectl apply -f "https://cloud.weave.works/k8s/net?'
+                'k8s-version=$kubever"')
+        master_config['runcmd'].append(
+                r'kubectl apply -f https://raw.githubusercontent.com/'
+                'kubernetes/dashboard/master/src/deploy/alternative/'
+                'kubernetes-dashboard-arm.yaml')
+        master_config['runcmd'].append(
+                r'mkdir -p /root/.kube')
+        master_config['runcmd'].append(
+                r'cp /etc/kubernetes/admin.conf /root/.kube/config')
 
     # Add the other config options
     master_config['locale'] = "en_US.UTF-8"
@@ -370,12 +413,12 @@ def build_master(config, token):
     return None
 
 
-def build_node( config, token, node):
+def build_node(config, token, node):
     """ Builds a node config """
     LOG.debug('Building Node Configs')
     node_config = {}
 
-    #Set hostname
+    # Set hostname
     node_config['hostname'] = "{0}-node{1}".format(config['host-prefix'], node)
 
     # Add users
@@ -391,7 +434,10 @@ def build_node( config, token, node):
         master_ip = "{0}-master".format(config['host-prefix'])
 
     # Join the cluster
-    node_config['runcmd'].append(r'kubeadm join --token {0} {1}:6443 --discovery-token-unsafe-skip-ca-verification'.format(token, master_ip.strip()))
+    node_config['runcmd'].append(
+            r'kubeadm join --token {0} {1}:6443 '
+            '--discovery-token-unsafe-skip-ca-verification'
+            .format(token, master_ip.strip()))
 
     # Add network config
     node_config['write_files'] = build_network_config(config, node)
@@ -401,7 +447,7 @@ def build_node( config, token, node):
         node_config['write_files'].append(configure_alfred())
         node_config['write_files'].append(configure_batvis())
 
-    #Write the file
+    # Write the file
     filename = "{0}-node{1}.yaml".format(config['host-prefix'], node)
     with open(filename, "w") as file:
         yaml.dump(node_config, file, default_flow_style=False)
@@ -418,10 +464,11 @@ def build_all_nodes(config, token):
         count += 1
     return None
 
+
 def build_configs():
     """ Build all the configs using the user cluster_config.yaml """
     # Pull in the master config as dict
-    user_config = yaml.load(open("cluster_config.yaml", "r" ))
+    user_config = yaml.load(open("cluster_config.yaml", "r"))
     my_token = ""
     if 'token' in user_config['kubeadm']:
         my_token = user_config['kubeadm']['token']
@@ -436,7 +483,8 @@ def build_configs():
 
 if __name__ == "__main__":
     # setup loggig
-    logging.basicConfig( format="%(asctime)s %(levelname)7s  %(funcName)20s %(message)s")
+    logging.basicConfig(
+            format="%(asctime)s %(levelname)7s  %(funcName)20s %(message)s")
     LOG = logging.getLogger("pikube")
     LOG.setLevel(logging.DEBUG)
     PP = pprint.PrettyPrinter(depth=6)

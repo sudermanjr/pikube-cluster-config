@@ -365,9 +365,10 @@ def build_master(config, token):
         LOG.debug("Set master_iface to 0.0.0.0")
 
     # Add the commands to init the master
-    master_config['runcmd'].append(r'apt-get install -o Dpkg::Options::='
-                                   '"--force-confold" --force-yes -y '
-                                   'isc-dhcp-server')
+    if config['network']['wlan']['mesh']['enabled']:
+        master_config['runcmd'].append(r'apt-get install -o Dpkg::Options::='
+                                       '"--force-confold" --force-yes -y '
+                                       'isc-dhcp-server')
     master_config['runcmd'].append(r'kubeadm init --token {0} '
                                    '--feature-gates=SelfHosting={1} '
                                    '--apiserver-advertise-address {2}'

@@ -9,15 +9,18 @@ network:
     enabled: true
     ssid: "pikube"
     psk: "A password should be defined here."
-    mesh: 
+    mesh:
       enabled: true # This will enable mesh networking on wireless.  Supersedes other wireless settings
       name: "awesome-supercool-mesh"
   lan:
     enabled: true
-    dhcp: true #This makes the next option useless.  
+    dhcp: true #This makes the next option useless.
     cidr: '10.3.14.0/24' # Must be an empty cidr.  We will use common addresses like 1-5 and 200
 kubeadm:
-  discoveryURL: 
+  version: 1.9.8-00
+  discoveryURL:
   network: weavenet
   token: KUBEADME_TOKEN # only if you want.  Delete this to generate one on the fly
-  selfHosted: true
+  selfHosted: false
+docker:
+  version: 18.05.0~ce~3-0~raspbian

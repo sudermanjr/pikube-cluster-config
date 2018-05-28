@@ -290,10 +290,15 @@ def build_base_commands(config):
     cmds.append(r'apt-get update')
     cmds.append(r'apt-get -o Dpkg::Options::="--force-confold" '
                 '-y -o Dpkg::Options::="--force-confdef" upgrade')
+
+    # Downgrade docker version
+    cmds.append(r'apt-get autoremove --purge -y docker-ce')
+
+    # Install other tools
     cmds.append(
             r'apt-get install -o Dpkg::Options::="--force-confold" '
             '-y -o Dpkg::Options::="--force-confdef" curl jq git '
-            'vim dnsutils wget')
+            'vim dnsutils wget docker-ce=17.09.1~ce-0~raspbian')
     cmds.append(
             r'curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg')
     cmds.append(
@@ -307,6 +312,8 @@ def build_base_commands(config):
     cmds.append(
             r'apt-get install -o Dpkg::Options::="--force-confold" '
             ' -y -o Dpkg::Options::="--force-confdef" kubelet kubeadm kubectl')
+
+    # Onoff shim files
     cmds.append(
             r'mkdir /onoffshim')
     cmds.append(
@@ -374,6 +381,7 @@ def build_master(config, token):
                                        'isc-dhcp-server')
     master_config['runcmd'].append(r'kubeadm init --token {0} '
                                    '--feature-gates=SelfHosting={1} '
+                                   '--ignore-preflight-errors=KubeletVersion '
                                    '--apiserver-advertise-address {2}'
                                    .format(token, config['kubeadm']
                                            ['selfHosted'], master_iface

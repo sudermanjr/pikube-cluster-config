@@ -280,17 +280,20 @@ iface eth0 inet static
 def build_base_commands(config):
     """ The base list of commands to run """
     cmds = []
-    cmds.append(r'systemctl restart avahi-daemon')
-    cmds.append(r'ifdown wlan0')
-    cmds.append(r'ifdown eth0')
-    cmds.append(r'service network restart')
-    cmds.append(r'ifup wlan0')
-    cmds.append(r'ifup eth0')
+    cmds.append(r'sleep 30')
+    # cmds.append(r'systemctl restart avahi-daemon')
+    # cmds.append(r'ifdown wlan0')
+    # cmds.append(r'ifdown eth0')
+    # cmds.append(r'service network restart')
+    # cmds.append(r'ifup wlan0')
+    # cmds.append(r'ifup eth0')
     cmds.append(r'apt-get update')
-    cmds.append(r'apt-get upgrade')
+    cmds.append(r'apt-get -o Dpkg::Options::="--force-confold" '
+                '-y -o Dpkg::Options::="--force-confdef" upgrade')
     cmds.append(
             r'apt-get install -o Dpkg::Options::="--force-confold" '
-            '--force-yes -y curl jq git vim dnsutils wget')
+            '-y -o Dpkg::Options::="--force-confdef" curl jq git '
+            'vim dnsutils wget')
     cmds.append(
             r'curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg')
     cmds.append(
@@ -302,8 +305,8 @@ def build_base_commands(config):
     cmds.append(
             r'apt-get update')
     cmds.append(
-            r'apt-get install -o Dpkg::Options::="--force-confold" --force-yes'
-            ' -y kubelet kubeadm kubectl')
+            r'apt-get install -o Dpkg::Options::="--force-confold" '
+            ' -y -o Dpkg::Options::="--force-confdef" kubelet kubeadm kubectl')
     cmds.append(
             r'mkdir /onoffshim')
     cmds.append(
@@ -317,8 +320,8 @@ def build_base_commands(config):
     if config['network']['wlan']['mesh']['enabled']:
         # Install batman adv deps
         cmds.append(r'apt-get install -o Dpkg::Options::="--force-confold" '
-                    '--force-yes -y libnl-3-dev libnl-genl-3-dev libcap-dev '
-                    'libgps-dev make gcc')
+                    '-y -o Dpkg::Options::="--force-confdef" libnl-3-dev '
+                    'libnl-genl-3-dev libcap-dev libgps-dev make gcc')
 
         # Get batctl and build it
         cmds.append(r'git clone https://git.open-mesh.org/batctl.git')
